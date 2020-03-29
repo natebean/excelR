@@ -1,267 +1,274 @@
+(function () {
   HTMLWidgets.widget({
+
     name: "jexcel",
-    
+
     type: "output",
-    
-    factory: function(el, width, height) {
+
+    factory: function (el, width, height) {
       var elementId = el.id;
       var container = document.getElementById(elementId);
       var excel = null;
-      
+
       return {
-        renderValue: function(params) {
-          var rowHeight = params.hasOwnProperty("rowHeight") ? params.rowHeight : undefined;
-          var showToolbar = params.hasOwnProperty("showToolbar")? params.showToolbar: false;
-          var dateFormat = params.hasOwnProperty("dateFormat")? params.dateFormat: "DD/MM/YYYY";
-          var autoWidth = params.hasOwnProperty("autoWidth")? params.autoWidth: true;
-          var autoFill = params.hasOwnProperty("autoFill")? params.autoFill: false;
-          var getSelectedData = params.hasOwnProperty("getSelectedData")? params.getSelectedData: false
+        renderValue: function (paramsFromR) {
+          // get params that need adjustment or used to adjust other params
+          var rowHeight = getValueOrDefault(paramsFromR, "rowHeight", undefined);
+          var showToolbar = getValueOrDefault(paramsFromR, "showToolbar", false);
+          var dateFormat = getValueOrDefault(paramsFromR, "dataFormat", "MM/DD/YYYY");
+          var autoWidth = getValueOrDefault(paramsFromR, "autoWidth", true);
+          var autoFill = getValueOrDefault(paramsFromR, "autoFill", false);
+          var getSelectedData = getValueOrDefault(paramsFromR, "getSelectedData", false);
+
           var imageColIndex = undefined;
-          var otherParams = {};
-          
-          Object.keys(params).forEach(function(ky) {
-            if(ky !== "dateFormat" && 
-            ky !== "rowHeight" && 
-            ky !== "autoWidth" && 
-            ky !== "getSelectedData" && 
-            ky !== "otherParams" ) {
-              // Check if the key is columns and check if the type is calendar, if yes add the date format
-              if(ky === "columns"){
-                otherParams[ky] = params[ky].map(function(column, index){
-                  // If the date format is not default we'll need to pass it properly to jexcel table
-                  if(column.type === "calendar" && dateFormat !== "DD/MM/YYYY"){
-                    column.options = {format: dateFormat}
-                  }
-                  
-                  // If image url is specified, we'll need to pass it to jexcel table only
-                  // in updateTable function,so here we'll first find the column index. This 
-                  if(column.type === "image"){
-                    imageColIndex = index;
-                  }
-                  return column;
-                });
-                
-                return;
+
+          var paramsToJexcel = {};
+
+          paramsFromR = removeParms(paramsFromR);
+          paramsToJexcel = extend({}, paramsFromR);
+          paramsToJexcel = columnTypeHandler(paramsFromR, paramsToJexcel, dateFormat);
+          paramsToJexcel.rows = rowsHandler(rowHeight);
+
+          //Lets add the image url in the update table function
+          if (imageColIndex) {
+            paramsToJexcel.updateTable = function (instance, cell, col, row, val, id) {
+              if (col == imageColIndex && "data:image" != val.substr(0, 10)) {
+                cell.innerHTML = '<img src="' + val + '" style="width:100px;height:100px">';
               }
             }
-            otherParams[ky] = params[ky];
-          });
-          
-          var rows = (function() {
-            if (rowHeight) {
-              const rows = {};
-              rowHeight.map(function(data) {
-                return rows[data[0]] = { height: `${data[1]}px` 
-              }
-            });
-            return rows;
           }
-          return {};
-        })();
-        
-        //Lets add the image url in the update table function
-        if(imageColIndex){
-          otherParams.updateTable = function (instance, cell, col, row, val, id) {
-            if (col == imageColIndex && "data:image" != val.substr(0, 10)) {
-              cell.innerHTML = '<img src="' + val + '" style="width:100px;height:100px">';
+
+          paramsToJexcel.tableOverflow = true;
+          paramsToJexcel.onchange = this.onChange;
+          paramsToJexcel.onbeforechange = this.onBeforeChange;
+          paramsToJexcel.oninsertrow = this.onChange;
+          paramsToJexcel.ondeleterow = this.onChange;
+          paramsToJexcel.oninsertcolumn = this.onChange;
+          paramsToJexcel.ondeletecolumn = this.onChange;
+          paramsToJexcel.onsort = this.onChange;
+          paramsToJexcel.onmoverow = this.onChange;
+          paramsToJexcel.onchangeheader = this.onChangeHeader;
+
+          if (getSelectedData) {
+            paramsToJexcel.onselection = this.onSelection;
+          }
+
+          // TODO:  make this configurable
+          if (showToolbar) {
+            paramsToJexcel.toolbar = [
+              { type: 'i', content: 'add', onclick: function () { excel.insertRow(1); } },
+            ]
+          }
+
+          // Snapshot selection before removing instance
+          var selection = excel ? excel.selectedCell : undefined;
+
+          // removing instance, is there a better way? 
+          if (excel !== null) {
+            while (container.firstChild) {
+              container.removeChild(container.firstChild);
             }
           }
-        }
-        
-        otherParams.rows = rows;
-        otherParams.tableOverflow = true;
-        otherParams.onchange = this.onChange;
-        otherParams.oninsertrow = this.onChange;
-        otherParams.ondeleterow = this.onChange;
-        otherParams.oninsertcolumn = this.onChange;
-        otherParams.ondeletecolumn = this.onChange;
-        otherParams.onsort = this.onChange;
-        otherParams.onmoverow = this.onChange;
-        otherParams.onchangeheader = this.onChangeHeader;
-        if(getSelectedData) {
-          otherParams.onselection = this.onSelection;
-        }
-        
-        if(showToolbar) {
-          // Add toolbar to param
-          otherParams.toolbar = [
-            { type:'i', content:'undo', onclick:function() { excel.undo(); } },
-            { type:'i', content:'redo', onclick:function() { excel.redo(); } },
-            { type:'i', content:'save', onclick:function () { excel.download(); } },
-            { type:'select', k:'font-family', v:['Arial','Verdana'] },
-            { type:'select', k:'font-size', v:['9px','10px','11px','12px','13px','14px','15px','16px','17px','18px','19px','20px'] },
-            { type:'i', content:'format_align_left', k:'text-align', v:'left' },
-            { type:'i', content:'format_align_center', k:'text-align', v:'center' },
-            { type:'i', content:'format_align_right', k:'text-align', v:'right' },
-            { type:'i', content:'format_bold', k:'font-weight', v:'bold' },
-            { type:'color', content:'format_color_text', k:'color' },
-            { type:'color', content:'format_color_fill', k:'background-color' },
-          ]
-        }
-        
-        // If new instance of the table   
-        if(excel === null) {
-          excel =  jexcel(container, otherParams);
-          
-          if(autoWidth){
+
+          excel = jexcel(container, paramsToJexcel);
+
+          if (autoWidth) {
+            // TODO:  due thru instance
             excel.table.setAttribute("style", "width: auto; height: auto; white-space: normal;")
           }
-          
-          if(!autoWidth && autoFill){
+
+          if (!autoWidth && autoFill) {
+            // TODO:  due thru instance
             excel.table.setAttribute("style", "width: 100%; height: 100%; white-space: normal;")
+            // TODO:  due thru instance
             container.getElementsByClassName("jexcel_content")[0].setAttribute("style", "height:100%")
           }
-          
+
+          // Add cursor back to where it was at
+          if (selection) {
+            excel.updateSelectionFromCoords(selection[0], selection[1], selection[2], selection[3]);
+          }
+
           container.excel = excel;
-          
-          return;
-        }
-        
-        var  selection  = excel.selectedCell;
-        
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
-        
-        excel = jexcel(container, otherParams);
-        
-        if(selection){
-          excel.updateSelectionFromCoords(selection[0], selection[1], selection[2], selection[3]);
-        }
-        
-        
-        if(autoWidth){
-          excel.table.setAttribute("style", "width: auto; height: auto; white-space: normal;")
-        }
-        
-        if(!autoWidth && autoFill){
-          excel.table.setAttribute("style", "width: 100%; height: 100%; white-space: normal;")
-          container.getElementsByClassName("jexcel_content")[0].setAttribute("style", "height:100%")
-        }
-        
-        container.excel = excel;
-        
-      },
-      
-      resize: function(width, height) {
-        
-      },
-      
-      onChange: function(obj){
-        
-        if (HTMLWidgets.shinyMode) {
-          
-          var changedData = getOnChangeData (this.data, this.columns, this.colHeaders);
-          
-          Shiny.setInputValue(obj.id, 
-            {
-              data:changedData.data, 
-              colHeaders: changedData.colHeaders,
-              colType: changedData.colType,
-              forSelectedVals: false, 
-            })
+
+        },
+
+        resize: function (width, height) {
+
+        },
+
+        onChange: function (obj, cell, x, y, value) {
+
+          if (HTMLWidgets.shinyMode) {
+            // this is the jexcel object that called this function
+            var changedData = getOnChangeData(this.data, this.columns, this.colHeaders);
+            var metaData = metaDataTransform(obj.jexcel.getMeta());
+            Shiny.setInputValue(obj.id,
+              {
+                data: changedData.data,
+                colHeaders: changedData.colHeaders,
+                colType: changedData.colType,
+                forSelectedVals: false,
+                changeEventInfo: {
+                  columnId: parseInt(x) + 1, // 0 index to 1 for R
+                  rowId: parseInt(y) + 1, // 0 index to 1 for R
+                  value: value
+                },
+                metaData: metaData
+              })
           }
         },
-        
-        onChangeHeader: function(obj, column, oldValue, newValue){
-          
+
+        onBeforeChange: function (instance, cell, x, y, value) {
+          var cellName = jexcel.getColumnNameFromId([x, y]);
+          // Could be used for batch tracking
+          instance.jexcel.setMeta(cellName, "changelog", "changed");
+        },
+
+        onChangeHeader: function (obj, column, oldValue, newValue) {
+
           if (HTMLWidgets.shinyMode) {
-            
-            var changedData = getOnChangeData (this.data, this.columns, this.colHeaders);
-            
+            // this is the jexcel object that called this function
+            var changedData = getOnChangeData(this.data, this.columns, this.colHeaders);
+
             var newColHeader = changedData.colHeaders;
             newColHeader[parseInt(column)] = newValue;
-            
-            Shiny.setInputValue(obj.id, 
+
+            Shiny.setInputValue(obj.id,
               {
-                data:changedData.data, 
+                data: changedData.data,
                 colHeaders: newColHeader,
                 colType: changedData.colType,
-                forSelectedVals: false, 
+                forSelectedVals: false,
               })
-            }
-          },
-          onSelection: function(obj, borderLeft, borderTop, borderRight, borderBottom, origin){
-            if (HTMLWidgets.shinyMode) {
-              // Get arrays between top to bottom, this will return the array of array for selected data
-              var data =  this.data.reduce(function(acc, value, index){
-                
-                if(index >= borderTop && index <= borderBottom){
-                  
-                  var val = value.reduce(function(innerAcc, innerValue, innerIndex){
-                    
-                    if(innerIndex >= borderLeft && innerIndex <= borderRight){
-                      
-                      innerAcc.push(innerValue);
-                    }
-                    
-                    return innerAcc;
-                  },[])
-                  
-                  acc.push(val);
-                }
-                
-                return acc;
-              },[])
-              
-              var fullData =  getOnChangeData (this.data, this.columns, this.colHeaders);
+          }
+        },
 
-              Shiny.setInputValue(obj.id, 
-                {
-                  fullData: fullData,
-                  selectedData: data,
-                  selectedDataBoundary:{
-                    borderLeft, 
-                    borderTop, 
-                    borderRight, 
-                    borderBottom
-                  },
-                  forSelectedVals: true
-                })
-                
+        onSelection: function (obj, borderLeft, borderTop, borderRight, borderBottom, origin) {
+
+          if (HTMLWidgets.shinyMode) {
+            // TODO: move to own function
+            // Get arrays between top to bottom, this will return the array of array for selected data
+            // Returning data that was selected
+            var data = this.data.reduce(function (acc, value, index) {
+              if (index >= borderTop && index <= borderBottom) {
+                var val = value.reduce(function (innerAcc, innerValue, innerIndex) {
+                  if (innerIndex >= borderLeft && innerIndex <= borderRight) {
+                    innerAcc.push(innerValue);
+                  }
+                  return innerAcc;
+                }, [])
+                acc.push(val);
               }
-            }
-          };
+              return acc;
+            }, [])
+
+            var fullData = getOnChangeData(this.data, this.columns, this.colHeaders);
+
+            Shiny.setInputValue(obj.id,
+              {
+                fullData: fullData,
+                selectedData: data,
+                selectedDataBoundary: {
+                  borderLeft,
+                  borderTop,
+                  borderRight,
+                  borderBottom
+                },
+                forSelectedVals: true
+              })
+
+          }
         }
+      };
+    }
+  });
+
+
+  function getOnChangeData(data, columns, colHeaders) {
+
+    var colType = columns.map(function (column) {
+      return column.type;
+    })
+
+    // If no headers create them.
+    if (colHeaders.every(function (val) { return (val === '') })) {
+      var colHeaders = columns.map(function (column) { return column.title })
+    }
+
+    return { data: data, colHeaders: colHeaders, colType: colType }
+  }
+
+
+  function removeParms(params) {
+    delete params.dateFormat;
+    delete params.rowHeight;
+    delete params.autoWidth;
+    delete params.getSelectedData;
+    delete params.otherParams;
+    return params;
+  }
+
+  function columnTypeHandler(paramsFromR, paramsToJexcel, dateFormat) {
+    var columns = paramsFromR.columns;
+    if (columns) {
+      paramsToJexcel.columns = paramsFromR.columns.map(function (column, index) {
+        // If the date format is not default we'll need to pass it properly to jexcel table
+        if (column.type === "calendar") {
+          column.options = { format: dateFormat };
+        }
+        // If image url is specified, we'll need to pass it to jexcel table only
+        // in updateTable function,so here we'll first find the column index. This
+        if (column.type === "image") {
+          imageColIndex = index;
+        }
+
+        if (column.type === "readonly") {
+          column.type = 'text';
+          column.readOnly = true;
+        }
+
+        return column;
       });
-      
-      
-      if (HTMLWidgets.shinyMode) {
-        
-        // This function is used to set comments in the table
-        Shiny.addCustomMessageHandler("excelR:setComments", function(message) {
-          
-          var el = document.getElementById(message[0]);
-          if (el) {
-            el.excel.setComments(message[1], message[2]);
+    }
+    return paramsToJexcel;
+  }
+
+  function rowsHandler(rowHeight) {
+    var rows = (function () {
+      if (rowHeight) {
+        const rows = {};
+        rowHeight.map(function (data) {
+          return rows[data[0]] = {
+            height: `${data[1]}px`
           }
         });
-        
-        // This function is used to get comments  from table
-        Shiny.addCustomMessageHandler("excelR:getComments", function(message) {
-          
-          var el = document.getElementById(message[0]);
-          if (el) {
-            var comments = message[1] ? el.excel.getComments(message[1]): el.excel.getComments(null);
-            
-            Shiny.setInputValue(message[0], 
-              {
-                comments
-              });
-            }
-          });
-        }
-        
-        
-        function getOnChangeData (data, columns, colHeaders) {
-          var colType = columns.map(function(column){
-            return column.type;
-          })
-          
-          
-          if(colHeaders.every(function (val){return (val ==='')})){
-            var colHeaders = columns.map(function(column){ return column.title})
-          }
-          
-          return { data: data, colHeaders: colHeaders, colType: colType}
-        }
+        return rows;
+      }
+      return {};
+    })();
+    return rows;
+  }
+
+  function metaDataTransform(metaData) {
+
+    if (!metaData) return null;
+
+    var transformed = {};
+
+    // Assuming shape of metaData =
+    // {A1: {obj}, B2: {obj}}
+    // Key transform from 'A1' to '1-1' for example
+    // 0 index to 1 index for R
+    Object.keys(metaData).forEach((key) => {
+      const newKeyArray = jexcel.getIdFromColumnName(key, true);
+      const columnId = parseInt(newKeyArray[0]) + 1;
+      const rowId = parseInt(newKeyArray[1]) + 1;
+      const newKey = columnId + '-' + rowId;
+      transformed[newKey] = metaData[key];
+    });
+
+    return transformed;
+  }
+
+})();

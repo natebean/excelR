@@ -54,6 +54,7 @@
 #' @param autoFill a boolen value indicating whether the excel table fill the container. By default this value is set to false.
 #' The width value specified in 'columns' param will have highest precendence followed by autoWidth.
 #' @param getSelectedData a boolean value indicating whether the there should be trigger for data selection or not.
+#' @param tableHeight height on jexcel table.
 #' By default this is set to false.
 #' @param  ... other jexcel parameters, e.g., updateTable
 #' @import jsonlite
@@ -64,6 +65,7 @@ excelTable <-
            columns = NULL,
            colHeaders = NULL,
            rowHeight = NULL,
+           tableHeight = '400px',
            nestedHeaders = NULL,
            defaultColWidth = NULL,
            minDimensions = NULL,
@@ -95,8 +97,7 @@ excelTable <-
            autoWidth = TRUE,
            autoFill = FALSE,
            getSelectedData = FALSE,
-           ...
-           ) {
+           ...) {
     # List of parameters to send to js
     paramList <- list()
 
@@ -105,7 +106,11 @@ excelTable <-
     {
       # It either has to be dataframe or matrix
       if (is.data.frame(data) || is.matrix(data)) {
-        paramList$data <- jsonlite::toJSON(data, dataframe = "values", na = "null", digits = digits)
+        paramList$data <-
+          jsonlite::toJSON(data,
+                           dataframe = "values",
+                           na = "null",
+                           digits = digits)
       } else {
         stop("'data' must be either a matrix or a data frame, cannot be ",
              class(data))
@@ -190,17 +195,21 @@ excelTable <-
     #Check autoColTypes
     #If 'type' attribute is not specified in column and autoColTypes is true, then we map this and add it
     #column attributes
-    if(autoColTypes && !is.null(data)){
-      if(is.null(columns)){
-        message("Since 'type' attribute is not specified and autoColTypes is true, detecting type from 'data'")
+    if (autoColTypes && !is.null(data)) {
+      if (is.null(columns)) {
+        message(
+          "Since 'type' attribute is not specified and autoColTypes is true, detecting type from 'data'"
+        )
 
         colTypes <- get_col_types(data)
-        columns <- data.frame(type=colTypes)
+        columns <- data.frame(type = colTypes)
         columns <- add_source_for_dropdown_type(data, columns)
         paramList$columns <- jsonlite::toJSON(columns)
-      }else{
-        if(!"type" %in% colnames(columns) && autoColTypes){
-          message("Since 'type' attribute is not specified and autoColTypes is true, detecting type from 'data'")
+      } else{
+        if (!"type" %in% colnames(columns) && autoColTypes) {
+          message(
+            "Since 'type' attribute is not specified and autoColTypes is true, detecting type from 'data'"
+          )
 
           colTypes <- get_col_types(data)
           columns$type <- colTypes
@@ -233,7 +242,7 @@ excelTable <-
       # nestedHeaders should be list
       if (!is.list(nestedHeaders)) {
         stop("'nestedHeaders' must be a list of dataframe(s), cannot be ",
-        class(nestedHeaders))
+             class(nestedHeaders))
       }
 
       headerAttributes <- c("title", "colspan")
@@ -292,8 +301,12 @@ excelTable <-
 
     if (!is.null(defaultColWidth)) {
       if (!is.numeric(defaultColWidth) || length(defaultColWidth) > 1) {
-        stop("'defaultColWidth' must be a numeric value of length 1 but got ",
-             class(defaultColWidth), " of length ", length(defaultColWidth))
+        stop(
+          "'defaultColWidth' must be a numeric value of length 1 but got ",
+          class(defaultColWidth),
+          " of length ",
+          length(defaultColWidth)
+        )
       }
 
       paramList$defaultColWidth <- defaultColWidth
@@ -345,12 +358,17 @@ excelTable <-
       "getSelectedData"
     )) {
       argvalue <- get(arg)
-      if(!is.null(argvalue)) {
+      if (!is.null(argvalue)) {
         # now check these arguments to make sure they are logical
-        if(is.logical(argvalue)) {
+        if (is.logical(argvalue)) {
           paramList[[arg]] <- argvalue
         } else {
-          warning("Argument ", arg, " should be either TRUE or FALSE.  Ignoring ", arg, ".", call. = FALSE)
+          warning("Argument ",
+                  arg,
+                  " should be either TRUE or FALSE.  Ignoring ",
+                  arg,
+                  ".",
+                  call. = FALSE)
           paramList[[arg]] <- NULL
         }
       }
@@ -387,8 +405,12 @@ excelTable <-
     # Check pagination
     if (!is.null(pagination)) {
       if (!is.numeric(pagination) || length(pagination) > 1) {
-        stop("'pagination' must be an integer of length 1 but got ",
-             class(pagination), " of length ", length(pagination))
+        stop(
+          "'pagination' must be an integer of length 1 but got ",
+          class(pagination),
+          " of length ",
+          length(pagination)
+        )
       }
 
       paramList$pagination <- pagination
@@ -403,9 +425,13 @@ excelTable <-
       paramList$style <- style
     }
 
+    if (!is.null(tableHeight)) {
+      paramList$tableHeight <- tableHeight
+    }
+
     # Check date format
-    if(!is.null(dateFormat)){
-        paramList$dateFormat <- dateFormat
+    if (!is.null(dateFormat)) {
+      paramList$dateFormat <- dateFormat
     }
 
     # Add all other parameters
@@ -416,8 +442,14 @@ excelTable <-
     htmlwidgets::createWidget(
       name = "jexcel",
       x = paramList,
-      width = if(fullscreen)'100%' else 0,
-      height = if(fullscreen ) '100%' else 0,
+      width = if (fullscreen)
+        '100%'
+      else
+        0,
+      height = if (fullscreen)
+        '100%'
+      else
+        0,
       package = 'excelR',
     )
   }

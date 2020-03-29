@@ -1,0 +1,107 @@
+library(shiny)
+library(excelR)
+
+app <- shinyApp(
+  ui = fluidPage(
+    actionButton("change", "change"),
+    excelOutput("table", height = "700px")
+  )
+  ,
+
+  server = function(input, output) {
+    values <- reactiveValues(df =
+                               data.frame(
+                                 ID = c(1, 2, 3),
+                                 Make = c('Honda', 'Honda', 'Hyundai'),
+                                 Car = c('Civic', 'City', 'Polo'),
+                                 MyDate = c(
+                                   as.Date('2000-1-1'),
+                                   as.Date('2010-2-1'),
+                                   as.Date('2009-3-1')
+                                 ),
+                                 State = c('server', 'server', 'server')
+                               ))
+
+    next_table <-
+      data.frame(
+        ID = c(1, 2, 3),
+        Make = c('one', 'two', 'three'),
+        Car = c('Civic', 'City', 'Polo'),
+        MyDate = c(
+          as.Date('2000-1-1'),
+          as.Date('2010-2-1'),
+          as.Date('2009-3-1')
+        ),
+        State = c('server', 'server', 'server')
+      )
+
+
+    output$table <- renderExcel({
+      columns <- data.frame(
+        title = c('ID', 'Make', 'Car', 'My Date', 'State'),
+        width = c(100, 600, 600, 600, 600),
+        type = c('readonly', 'text', 'dropdown', 'calendar', 'hidden'),
+        source = I(list(
+          0,
+          0,
+          c('Civic', 'City',  'Polo', 'Creta', 'Santro'),
+          0, 0
+        ))
+      )
+
+      # row_height <- data.frame(row_index = c(0, 2),
+      #                          row_value = c(100, 150))
+
+      excel_table <- excelTable(
+        data = values$df,
+        columns = columns,
+        # rowHeight = row_height,
+        # autoFill = TRUE,
+        # fullscreen = TRUE,
+        wordWrap = TRUE,
+        showToolbar = TRUE,
+        columnDrag = FALSE,
+        allowInsertColumn = FALSE,
+        allowRenameColumn = FALSE,
+        allowDeleteColumn = FALSE,
+        defaultColWidth = 300,
+        toolBar = TRUE,
+        tableHeight = '700px'
+      )
+
+      excel_table
+    })
+
+    observeEvent(input$table, {
+      print(input$table)
+      table_data <- excel_to_R(input$table)
+
+      if (!is.null(table_data)) {
+        if (isTruthy(input$table$changeEventInfo$value)) {
+          # If came from the server, then change state to changed else is a client record
+          if (table_data[input$table$changeEventInfo$rowId, ]$State == "server") {
+            table_data[input$table$changeEventInfo$rowId, ]$State = "changed"
+          }
+        } else{
+          #  Came from the client not the server
+          new_rows <- table_data[which(table_data$State == ''), ]
+          if (nrow(new_rows) > 0) {
+            table_data[which(table_data$State == ''), ]$State = "new"
+          }
+        }
+
+        print(table_data)
+
+        values$df <- table_data
+      }
+    })
+
+    observeEvent(input$change, {
+      values$df <- next_table
+      print("change")
+    })
+
+  }
+)
+
+# runApp(app)
