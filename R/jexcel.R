@@ -10,6 +10,7 @@
 #' in columns is specified, the latter will take precedence.
 #' @param rowHeight a dataframe or matrix specifying height of different rows. The first column consists of numerical value that
 #' specifies the row number and the second column is also numerical value that specifies the height in pixels.
+#' @param tableHeight height on jexcel table.
 #' @param nestedHeaders a list of dataframe having title and colspan as the attributes. The nested header
 #' in the same level should be in the same dataframe.
 #' @param defaultColWidth a numeric value specifying the default width of column when the width attribute of column is not specified.
@@ -54,7 +55,6 @@
 #' @param autoFill a boolen value indicating whether the excel table fill the container. By default this value is set to false.
 #' The width value specified in 'columns' param will have highest precendence followed by autoWidth.
 #' @param getSelectedData a boolean value indicating whether the there should be trigger for data selection or not.
-#' @param tableHeight height on jexcel table.
 #' By default this is set to false.
 #' @param  ... other jexcel parameters, e.g., updateTable
 #' @import jsonlite
@@ -97,6 +97,7 @@ excelTable <-
            autoWidth = TRUE,
            autoFill = FALSE,
            getSelectedData = FALSE,
+           comments = NULL,
            ...) {
     # List of parameters to send to js
     paramList <- list()
@@ -427,6 +428,10 @@ excelTable <-
 
     if (!is.null(tableHeight)) {
       paramList$tableHeight <- tableHeight
+    }
+
+    if (!is.null(comments)) {
+      paramList$comments <- comments
     }
 
     # Check date format

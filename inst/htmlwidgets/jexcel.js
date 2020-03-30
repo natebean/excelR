@@ -19,6 +19,7 @@
           var autoWidth = getValueOrDefault(paramsFromR, "autoWidth", true);
           var autoFill = getValueOrDefault(paramsFromR, "autoFill", false);
           var getSelectedData = getValueOrDefault(paramsFromR, "getSelectedData", false);
+          var comments = getValueOrDefault(paramsFromR, "comments", undefined);
 
           var imageColIndex = undefined;
 
@@ -63,14 +64,13 @@
           // Snapshot selection before removing instance
           var selection = excel ? excel.selectedCell : undefined;
 
-          // removing instance, is there a better way?
           if (excel !== null) {
-            while (container.firstChild) {
-              container.removeChild(container.firstChild);
-            }
+            jexcel.destroy(container);
           }
 
           excel = jexcel(container, paramsToJexcel);
+
+          populateComments(comments, excel);
 
           if (autoWidth) {
             // TODO:  due thru instance
@@ -106,8 +106,8 @@
             const xInt = parseInt(x);
             const yInt = parseInt(y);
             let cellName = null;
-            if(!isNaN(xInt) && !isNaN(yInt)){
-              cellName = jexcel.getColumnNameFromId([x,y]);
+            if (!isNaN(xInt) && !isNaN(yInt)) {
+              cellName = jexcel.getColumnNameFromId([x, y]);
             }
             Shiny.setInputValue(obj.id,
               {
@@ -122,7 +122,8 @@
                   value: value
                 },
                 style: obj.jexcel.getStyle(),
-                metaData: metaData
+                metaData: metaData,
+                comments: obj.jexcel.getComments()
               })
           }
         },
@@ -214,6 +215,7 @@
     delete params.autoWidth;
     delete params.getSelectedData;
     delete params.otherParams;
+    delete params.comments;
     return params;
   }
 
@@ -277,6 +279,12 @@
     });
 
     return transformed;
+  }
+
+  function populateComments(comments, excel){
+    Object.keys(comments).forEach((key)=>{
+      excel.setComments(key, comments[key] );
+    });
   }
 
 })();

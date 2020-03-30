@@ -9,19 +9,22 @@ app <- shinyApp(
   ,
 
   server = function(input, output) {
-    values <- reactiveValues(df =
-                               data.frame(
-                                 ID = c(1, 2, 3),
-                                 Make = c('Honda', 'Honda', 'Hyundai'),
-                                 Car = c('Civic', 'City', 'Polo'),
-                                 MyDate = c(
-                                   as.Date('2000-1-1'),
-                                   as.Date('2010-2-1'),
-                                   as.Date('2009-3-1')
-                                 ),
-                                 State = c('server', 'server', 'server')
-                               ),
-                             style = list())
+    state_store <- reactiveValues(
+      df =
+        data.frame(
+          ID = c(1, 2, 3),
+          Make = c('Honda', 'Honda', 'Hyundai'),
+          Car = c('Civic', 'City', 'Polo'),
+          MyDate = c(
+            as.Date('2000-1-1'),
+            as.Date('2010-2-1'),
+            as.Date('2009-3-1')
+          ),
+          State = c('server', 'server', 'server')
+        ),
+      style = list(),
+      comments = list(A1 = 'comments: A1', B2 = 'comments: B2')
+    )
 
     next_table <-
       data.frame(
@@ -54,9 +57,9 @@ app <- shinyApp(
       #                          row_value = c(100, 150))
 
       excel_table <- excelTable(
-        data = values$df,
+        data = state_store$df,
         columns = columns,
-        style = values$style,
+        style = state_store$style,
         wordWrap = TRUE,
         showToolbar = TRUE,
         columnDrag = FALSE,
@@ -65,7 +68,8 @@ app <- shinyApp(
         allowDeleteColumn = FALSE,
         defaultColWidth = 300,
         toolBar = TRUE,
-        tableHeight = '700px'
+        tableHeight = '700px',
+        comments = state_store$comments
       )
 
       excel_table
@@ -77,35 +81,40 @@ app <- shinyApp(
       table_data <- excel_to_R(input$table)
 
       style <- input$table$style
+      comments <- input$table$comments
 
       if (!is.null(table_data)) {
         if (isTruthy(input$table$changeEventInfo$value)) {
           # If came from the server, then change state to changed else is a client record
-          if (table_data[input$table$changeEventInfo$rowId,]$State == "server") {
-            table_data[input$table$changeEventInfo$rowId,]$State = "changed"
+          if (table_data[input$table$changeEventInfo$rowId, ]$State == "server") {
+            table_data[input$table$changeEventInfo$rowId, ]$State = "changed"
           }
         } else{
           #  Came from the client not the server
-          new_rows <- table_data[which(table_data$State == ''),]
+          new_rows <- table_data[which(table_data$State == ''), ]
           if (nrow(new_rows) > 0) {
-            table_data[which(table_data$State == ''),]$State = "new"
+            table_data[which(table_data$State == ''), ]$State = "new"
           }
         }
 
         if (isTruthy(input$table$changeEventInfo$cellName)) {
           style[[input$table$changeEventInfo$cellName]] = 'background-color:orange; color:green;'
+          comments[[input$table$changeEventInfo$cellName]] = 'changed'
         }
-        print(input$table$style)
-        print(table_data)
-        print(style)
+        # print(input$table$style)
+        # print(table_data)
+        # print(style)
 
-        values$df <- table_data
-        values$style <- style
+        print(input$table)
+
+        state_store$df <- table_data
+        state_store$style <- style
+        state_store$comments <- comments
       }
     })
 
     observeEvent(input$change, {
-      values$df <- next_table
+      state_store$df <- next_table
       print("change")
     })
 

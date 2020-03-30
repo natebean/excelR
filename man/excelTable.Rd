@@ -4,18 +4,45 @@
 \alias{excelTable}
 \title{Create excel table using jexcel library}
 \usage{
-excelTable(data = NULL, columns = NULL, colHeaders = NULL,
-  rowHeight = NULL, nestedHeaders = NULL, defaultColWidth = NULL,
-  minDimensions = NULL, columnSorting = TRUE, columnDrag = FALSE,
-  columnResize = TRUE, rowResize = FALSE, rowDrag = TRUE,
-  editable = TRUE, allowInsertRow = TRUE, allowInsertColumn = TRUE,
-  allowDeleteRow = TRUE, allowDeleteColumn = TRUE,
-  allowRenameColumn = TRUE, allowComments = FALSE, wordWrap = FALSE,
-  selectionCopy = TRUE, mergeCells = NULL, search = FALSE,
-  pagination = NULL, fullscreen = FALSE, lazyLoading = FALSE,
-  loadingSpin = FALSE, style = NULL, autoColTypes = TRUE,
-  showToolbar = FALSE, dateFormat = "DD/MM/YYYY", digits = 4,
-  autoWidth = TRUE, autoFill = FALSE, getSelectedData = FALSE, ...)
+excelTable(
+  data = NULL,
+  columns = NULL,
+  colHeaders = NULL,
+  rowHeight = NULL,
+  tableHeight = "400px",
+  nestedHeaders = NULL,
+  defaultColWidth = NULL,
+  minDimensions = NULL,
+  columnSorting = TRUE,
+  columnDrag = FALSE,
+  columnResize = TRUE,
+  rowResize = FALSE,
+  rowDrag = TRUE,
+  editable = TRUE,
+  allowInsertRow = TRUE,
+  allowInsertColumn = TRUE,
+  allowDeleteRow = TRUE,
+  allowDeleteColumn = TRUE,
+  allowRenameColumn = TRUE,
+  allowComments = FALSE,
+  wordWrap = FALSE,
+  selectionCopy = TRUE,
+  mergeCells = NULL,
+  search = FALSE,
+  pagination = NULL,
+  fullscreen = FALSE,
+  lazyLoading = FALSE,
+  loadingSpin = FALSE,
+  style = NULL,
+  autoColTypes = TRUE,
+  showToolbar = FALSE,
+  dateFormat = "DD/MM/YYYY",
+  digits = 4,
+  autoWidth = TRUE,
+  autoFill = FALSE,
+  getSelectedData = FALSE,
+  ...
+)
 }
 \arguments{
 \item{data}{a data object, can either be dataframe or a matrix.}
@@ -29,6 +56,8 @@ in columns is specified, the latter will take precedence.}
 
 \item{rowHeight}{a dataframe or matrix specifying height of different rows. The first column consists of numerical value that
 specifies the row number and the second column is also numerical value that specifies the height in pixels.}
+
+\item{tableHeight}{height on jexcel table.}
 
 \item{nestedHeaders}{a list of dataframe having title and colspan as the attributes. The nested header
 in the same level should be in the same dataframe.}
