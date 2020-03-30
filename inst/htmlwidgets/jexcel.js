@@ -63,7 +63,7 @@
           // Snapshot selection before removing instance
           var selection = excel ? excel.selectedCell : undefined;
 
-          // removing instance, is there a better way? 
+          // removing instance, is there a better way?
           if (excel !== null) {
             while (container.firstChild) {
               container.removeChild(container.firstChild);
@@ -103,6 +103,12 @@
             // this is the jexcel object that called this function
             var changedData = getOnChangeData(this.data, this.columns, this.colHeaders);
             var metaData = metaDataTransform(obj.jexcel.getMeta());
+            const xInt = parseInt(x);
+            const yInt = parseInt(y);
+            let cellName = null;
+            if(!isNaN(xInt) && !isNaN(yInt)){
+              cellName = jexcel.getColumnNameFromId([x,y]);
+            }
             Shiny.setInputValue(obj.id,
               {
                 data: changedData.data,
@@ -112,8 +118,10 @@
                 changeEventInfo: {
                   columnId: parseInt(x) + 1, // 0 index to 1 for R
                   rowId: parseInt(y) + 1, // 0 index to 1 for R
+                  cellName: cellName,
                   value: value
                 },
+                style: obj.jexcel.getStyle(),
                 metaData: metaData
               })
           }

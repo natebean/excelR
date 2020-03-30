@@ -17,7 +17,7 @@ install.packages('excelR')
 To install the latest development version from GitHub:
 ```r
 library(devtools)
-install_github('Swechhya/excelR')
+install_github('natebean/excelR')
 ```
 
 ## Simple example

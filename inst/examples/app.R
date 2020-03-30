@@ -20,7 +20,8 @@ app <- shinyApp(
                                    as.Date('2009-3-1')
                                  ),
                                  State = c('server', 'server', 'server')
-                               ))
+                               ),
+                             style = list())
 
     next_table <-
       data.frame(
@@ -55,9 +56,7 @@ app <- shinyApp(
       excel_table <- excelTable(
         data = values$df,
         columns = columns,
-        # rowHeight = row_height,
-        # autoFill = TRUE,
-        # fullscreen = TRUE,
+        style = values$style,
         wordWrap = TRUE,
         showToolbar = TRUE,
         columnDrag = FALSE,
@@ -73,26 +72,35 @@ app <- shinyApp(
     })
 
     observeEvent(input$table, {
-      print(input$table)
+      print(input$table$changeEventInfo)
+
       table_data <- excel_to_R(input$table)
+
+      style <- input$table$style
 
       if (!is.null(table_data)) {
         if (isTruthy(input$table$changeEventInfo$value)) {
           # If came from the server, then change state to changed else is a client record
-          if (table_data[input$table$changeEventInfo$rowId, ]$State == "server") {
-            table_data[input$table$changeEventInfo$rowId, ]$State = "changed"
+          if (table_data[input$table$changeEventInfo$rowId,]$State == "server") {
+            table_data[input$table$changeEventInfo$rowId,]$State = "changed"
           }
         } else{
           #  Came from the client not the server
-          new_rows <- table_data[which(table_data$State == ''), ]
+          new_rows <- table_data[which(table_data$State == ''),]
           if (nrow(new_rows) > 0) {
-            table_data[which(table_data$State == ''), ]$State = "new"
+            table_data[which(table_data$State == ''),]$State = "new"
           }
         }
 
+        if (isTruthy(input$table$changeEventInfo$cellName)) {
+          style[[input$table$changeEventInfo$cellName]] = 'background-color:orange; color:green;'
+        }
+        print(input$table$style)
         print(table_data)
+        print(style)
 
         values$df <- table_data
+        values$style <- style
       }
     })
 
