@@ -23,7 +23,11 @@ app <- shinyApp(
           State = c('server', 'server', 'server')
         ),
       style = list(),
-      comments = list(A1 = 'comments: A1', B2 = 'comments: B2')
+      comments = list(A1 = 'comments: A1', B2 = 'comments: B2'),
+      meta_data = list(
+        B1 = list(customKey = list(state = "valid"))
+      )
+      # meta_data = list()
     )
 
     next_table <-
@@ -62,14 +66,15 @@ app <- shinyApp(
         style = state_store$style,
         wordWrap = TRUE,
         showToolbar = TRUE,
-        columnDrag = FALSE,
+        columnDrag = TRUE,
         allowInsertColumn = FALSE,
         allowRenameColumn = FALSE,
         allowDeleteColumn = FALSE,
         defaultColWidth = 300,
         toolBar = TRUE,
-        tableHeight = '700px',
-        comments = state_store$comments
+        tableHeight = '700px' ,
+        comments = state_store$comments,
+        metaData = state_store$meta_data
       )
 
       excel_table
@@ -82,18 +87,19 @@ app <- shinyApp(
 
       style <- input$table$style
       comments <- input$table$comments
+      meta_data <- input$table$metaData
 
       if (!is.null(table_data)) {
         if (isTruthy(input$table$changeEventInfo$value)) {
           # If came from the server, then change state to changed else is a client record
-          if (table_data[input$table$changeEventInfo$rowId, ]$State == "server") {
-            table_data[input$table$changeEventInfo$rowId, ]$State = "changed"
+          if (table_data[input$table$changeEventInfo$rowId,]$State == "server") {
+            table_data[input$table$changeEventInfo$rowId,]$State = "changed"
           }
         } else{
           #  Came from the client not the server
-          new_rows <- table_data[which(table_data$State == ''), ]
+          new_rows <- table_data[which(table_data$State == ''),]
           if (nrow(new_rows) > 0) {
-            table_data[which(table_data$State == ''), ]$State = "new"
+            table_data[which(table_data$State == ''),]$State = "new"
           }
         }
 
@@ -106,10 +112,12 @@ app <- shinyApp(
         # print(style)
 
         print(input$table)
+        # print(table_data)
 
         state_store$df <- table_data
         state_store$style <- style
         state_store$comments <- comments
+        state_store$meta_data <- meta_data
       }
     })
 

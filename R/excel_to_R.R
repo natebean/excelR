@@ -21,7 +21,7 @@
 
 excel_to_R <- function(excelObj) {
    if (!is.null(excelObj)) {
-      if( excelObj$forSelectedVals )
+      if (excelObj$forSelectedVals)
       {
          excelObj = excelObj$fullData
       }
@@ -32,11 +32,15 @@ excel_to_R <- function(excelObj) {
       dataOutput <- do.call(rbind.data.frame, data)
 
       # Change clandar variables to date
-      if(any(colType == 'calendar')){
-         dateVariables<- which(colType == 'calendar' )
-         dataOutput[dateVariables] <- lapply(dataOutput[dateVariables], function(x)
-          as.Date(gsub(pattern = "^$", replacement = NA, x = x))
-         )
+      if (any(colType == 'calendar')) {
+         dateVariables <- which(colType == 'calendar')
+         dataOutput[dateVariables] <-
+            lapply(dataOutput[dateVariables], function(x)
+               as.Date(gsub(
+                  pattern = "^$",
+                  replacement = NA,
+                  x = x
+               )))
       }
 
       #if any of the column is not dropdown but is factor convert it to character
@@ -44,9 +48,11 @@ excel_to_R <- function(excelObj) {
       dropdownCols <- which(colType == 'dropdown')
 
       # At least one of the factor column is not dropdown,convert that to character
-      if(length(factorCols) != length(dropdownCols) || !all(factorCols == dropdownCols)){
+      if (length(factorCols) != length(dropdownCols) ||
+          !all(factorCols == dropdownCols)) {
          diffCols <- setdiff(factorCols, dropdownCols)
-         dataOutput[diffCols] <- lapply(dataOutput[diffCols], as.character)
+         dataOutput[diffCols] <-
+            lapply(dataOutput[diffCols], as.character)
       }
 
       rownames(dataOutput) <- NULL

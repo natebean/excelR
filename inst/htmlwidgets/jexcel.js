@@ -9,6 +9,7 @@
       var elementId = el.id;
       var container = document.getElementById(elementId);
       var excel = null;
+      var dfColNames = null;
 
       return {
         renderValue: function (paramsFromR) {
@@ -20,6 +21,10 @@
           var autoFill = getValueOrDefault(paramsFromR, "autoFill", false);
           var getSelectedData = getValueOrDefault(paramsFromR, "getSelectedData", false);
           var comments = getValueOrDefault(paramsFromR, "comments", undefined);
+          var metaData = getValueOrDefault(paramsFromR, "metaData", undefined);
+          
+          // save raw defintion to send back
+          dfColNames = paramsFromR.dfColNames;
 
           var imageColIndex = undefined;
 
@@ -49,6 +54,7 @@
           paramsToJexcel.onsort = this.onChange;
           paramsToJexcel.onmoverow = this.onChange;
           paramsToJexcel.onchangeheader = this.onChangeHeader;
+          paramsToJexcel.onmovecolumn = this.onMoveColumn;
 
           if (getSelectedData) {
             paramsToJexcel.onselection = this.onSelection;
@@ -71,6 +77,7 @@
           excel = jexcel(container, paramsToJexcel);
 
           populateComments(comments, excel);
+          populateMetaData(metaData, excel);
 
           if (autoWidth) {
             // TODO:  due thru instance
@@ -100,9 +107,11 @@
         onChange: function (obj, cell, x, y, value) {
 
           if (HTMLWidgets.shinyMode) {
-            // this is the jexcel object that called this function
-            var changedData = getOnChangeData(this.data, this.columns, this.colHeaders);
-            var metaData = metaDataTransform(obj.jexcel.getMeta());
+            // 'this' is the jexcel object that called this function
+            // var changedData = getOnChangeData(this.data, this.columns, this.colHeaders);
+            var changedData = getOnChangeData(this.data, this.columns, dfColNames);
+            const metaData = obj.jexcel.getMeta();
+            var metaDataIndexForm = metaDataIndexFormTransform(metaData);
             const xInt = parseInt(x);
             const yInt = parseInt(y);
             let cellName = null;
@@ -123,6 +132,7 @@
                 },
                 style: obj.jexcel.getStyle(),
                 metaData: metaData,
+                metaDataIndexForm: metaDataIndexForm,
                 comments: obj.jexcel.getComments()
               })
           }
@@ -132,6 +142,11 @@
           var cellName = jexcel.getColumnNameFromId([x, y]);
           // Could be used for batch tracking
           instance.jexcel.setMeta(cellName, "changelog", "changed");
+        },
+        onMoveColumn: function(el, orgIndex, movedIndex){
+          // 0 index
+          console.log(orgIndex);
+          console.log(movedIndex);
         },
 
         onChangeHeader: function (obj, column, oldValue, newValue) {
@@ -201,7 +216,7 @@
     })
 
     // If no headers create them.
-    if (colHeaders.every(function (val) { return (val === '') })) {
+    if (colHeaders && colHeaders.every(function (val) { return (val === '') })) {
       var colHeaders = columns.map(function (column) { return column.title })
     }
 
@@ -216,6 +231,8 @@
     delete params.getSelectedData;
     delete params.otherParams;
     delete params.comments;
+    delete params.metaData;
+    delete params.columnDrag;
     return params;
   }
 
@@ -260,7 +277,7 @@
     return rows;
   }
 
-  function metaDataTransform(metaData) {
+  function metaDataIndexFormTransform(metaData) {
 
     if (!metaData) return null;
 
@@ -281,10 +298,26 @@
     return transformed;
   }
 
-  function populateComments(comments, excel){
-    Object.keys(comments).forEach((key)=>{
-      excel.setComments(key, comments[key] );
+  function populateComments(comments, excel) {
+    if(comments){
+          Object.keys(comments).forEach((key) => {
+      excel.setComments(key, comments[key]);
     });
+    }
+
+  }
+  // Assuming shape from Shiny of
+  // A1: { yourKey: foo}
+  function populateMetaData(metaData, excel) {
+    if(metaData){
+          Object.keys(metaData).forEach((mainKey) => {
+      Object.keys(metaData[mainKey]).forEach((key) => {
+        excel.setMeta(mainKey, key, metaData[mainKey][key]);
+      });
+
+    });
+    }
+
   }
 
 })();

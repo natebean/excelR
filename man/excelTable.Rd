@@ -41,6 +41,8 @@ excelTable(
   autoWidth = TRUE,
   autoFill = FALSE,
   getSelectedData = FALSE,
+  comments = NULL,
+  metaData = NULL,
   ...
 )
 }
@@ -72,7 +74,7 @@ with the given dimensions.}
 \item{columnSorting}{a boolean value indicating if column sorting should be enabled. When enabled double click
 on the table headers sorts the column. By default it is set to true.}
 
-\item{columnDrag}{a boolean value indicating if column dragging is enabled. By default it is set to false.}
+\item{columnDrag}{Disabled for now.  A boolean value indicating if column dragging is enabled. By default it is set to false.}
 
 \item{columnResize}{a boolean value indicating if column resizing is enabled. By default it is set to true.}
 
@@ -134,6 +136,13 @@ The width value specified in 'columns' param will have highest precendence follo
 
 \item{getSelectedData}{a boolean value indicating whether the there should be trigger for data selection or not.
 By default this is set to false.}
+
+\item{comments}{a list of comments with the key in the format of 'A1'}
+
+\item{metaData}{a list of metaData with the key in the format of 'A1'
+\code{list(
+       A1 = list(customKey = list(state = "valid"))
+     )}}
 
 \item{...}{other jexcel parameters, e.g., updateTable}
 }

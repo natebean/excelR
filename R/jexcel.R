@@ -20,7 +20,7 @@
 #' with the given dimensions.
 #' @param columnSorting a boolean value indicating if column sorting should be enabled. When enabled double click
 #' on the table headers sorts the column. By default it is set to true.
-#' @param columnDrag a boolean value indicating if column dragging is enabled. By default it is set to false.
+#' @param columnDrag Disabled for now.  A boolean value indicating if column dragging is enabled. By default it is set to false.
 #' @param columnResize a boolean value indicating if column resizing is enabled. By default it is set to true.
 #' @param rowResize a boolean value indicating if row resizing is enabled. By default it is set to false.
 #' @param rowDrag a boolean value indicating if rowDragging is enabled or not. By default it is set to true.
@@ -56,6 +56,11 @@
 #' The width value specified in 'columns' param will have highest precendence followed by autoWidth.
 #' @param getSelectedData a boolean value indicating whether the there should be trigger for data selection or not.
 #' By default this is set to false.
+#' @param comments a list of comments with the key in the format of 'A1'
+#' @param metaData a list of metaData with the key in the format of 'A1'
+#' \code{list(
+#'        A1 = list(customKey = list(state = "valid"))
+#'      )}
 #' @param  ... other jexcel parameters, e.g., updateTable
 #' @import jsonlite
 #' @import htmlwidgets
@@ -98,6 +103,7 @@ excelTable <-
            autoFill = FALSE,
            getSelectedData = FALSE,
            comments = NULL,
+           metaData = NULL,
            ...) {
     # List of parameters to send to js
     paramList <- list()
@@ -192,6 +198,7 @@ excelTable <-
       paramList$columns <- jsonlite::toJSON(columns)
 
     }
+
 
     #Check autoColTypes
     #If 'type' attribute is not specified in column and autoColTypes is true, then we map this and add it
@@ -434,10 +441,16 @@ excelTable <-
       paramList$comments <- comments
     }
 
+    if (!is.null(metaData)) {
+      paramList$metaData <- metaData
+    }
+
     # Check date format
     if (!is.null(dateFormat)) {
       paramList$dateFormat <- dateFormat
     }
+
+    paramList$dfColNames <- jsonlite::toJSON(colnames(data))
 
     # Add all other parameters
     paramList <- append(paramList, list(...))
